@@ -1,0 +1,910 @@
+{
+  "name": "rss",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -656,
+        448
+      ],
+      "id": "b6f6461b-6437-4b86-822f-7645ae314fea",
+      "name": "RSS Read"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1168,
+        448
+      ],
+      "id": "3424cd4d-3846-4307-b48f-99fcd4e2ba60",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n    { \"url\": \"https://americanbazaaronline.com/feed/\", \"source\": \"American Bazaar\" },\n  // { \"url\": \"https://nripulse.com/feed/\", \"source\": \"NRI Pulse\" },\n\n  // { \"url\": \"https://newsindiatimes.com/feed/\", \"source\": \"News India Times\" },\n  // { \"url\": \"https://indianewengland.com/feed/\", \"source\": \"India New England\" },\n  // { \"url\": \"https://www.theindianpanorama.news/feed/\", \"source\": \"The Indian Panorama\" }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -928,
+        448
+      ],
+      "id": "982e1d92-5d42-4bf4-bf25-2d62ac81ad6b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Code in JavaScript3').item.json.link }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1552,
+        448
+      ],
+      "id": "0b4b6aad-fdc4-4561-aaa9-8095daa3095e",
+      "name": "HTTP Request",
+      "retryOnFail": false,
+      "maxTries": 2
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "article_text",
+              "cssSelector": "article"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        448
+      ],
+      "id": "ee24c3c8-51a9-4f98-9f94-ae709ba8317c",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Title: {{ $('RSS Read').item.json.title }}\nText: {{ $json.article_text }}\nOriginal Source URL: {{ $('RSS Read').item.json.link }}",
+        "options": {
+          "systemMessage": "Role: You are a News Curator and Diaspora Editor for a website serving Indians living in the USA.\nSTRICT RULES:\n- Do NOT summarize the article.\n- Do NOT rewrite or paraphrase sentences.\n- Do NOT reuse the original headline.\n- Output must be valid JSON only.\nTasks:\n1. Analyze the article text.\n2. Write a 40-50 word \"Diaspora Insight\" explaining why this matters to Indians in the US.\n3. Extract 3-5 Key Facts.\n4. Categorize the article into one of these Main Categories: [Immigration, Business, Politics, Entertainment, Community, Technology].\n5. Assign a relevant Sub-Category (e.g., H1B, Bollywood, Startups).\n6. Create a short, SEO-friendly Headline.\n\nOutput JSON Format:\n{\n  \"new_headline\": \"String\",\n  \"diaspora_insight\": \"String\",\n  \"key_facts\": \"String (bullet points)\",\n  \"category\": \"String\",\n  \"sub_category\": \"String\",\n  \"sentiment\": \"Positive/Neutral/Negative\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2016,
+        448
+      ],
+      "id": "747f045e-7b92-446e-8f01-a6d7c9308936",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2176,
+        768
+      ],
+      "id": "644d34c6-915f-4c6e-b7bb-39cc072184b7",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0pgJ6oTnXkBLwilY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over all items (even if there is only one)\nfor (const item of items) {\n  // Get the text from the AI\n  const rawText = item.json.output;\n\n  // Remove the ```json and ``` markers\n  if (rawText) {\n    const cleanText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();\n    // Save the clean object back to the item\n    item.json = JSON.parse(cleanText);\n  }\n}\n\n// Return the cleaned items\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2368,
+        448
+      ],
+      "id": "957788b5-fd75-4053-9ddc-00682a0a9499",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1BiJ2Pfx6TR6pr4h88kCP1Flk-rMPynf6UVfyNN6bCYY",
+          "mode": "list",
+          "cachedResultName": "Data(RSS)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BiJ2Pfx6TR6pr4h88kCP1Flk-rMPynf6UVfyNN6bCYY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BiJ2Pfx6TR6pr4h88kCP1Flk-rMPynf6UVfyNN6bCYY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Facts": "={{ $('Code in JavaScript1').item.json.key_facts }}",
+            "Insight": "={{ $('Code in JavaScript1').item.json.diaspora_insight }}",
+            "Category": "={{ $('Code in JavaScript1').item.json.category }}",
+            "Sub-Category": "={{ $('Code in JavaScript1').item.json.sub_category }}",
+            "Headline": "={{ $('Code in JavaScript1').item.json.new_headline }}",
+            "Date": "={{ $('Code in JavaScript3').item.json.published_at }}",
+            "Image Url": "={{ $json.webViewLink }}",
+            "Article URL": "={{ $('If').item.json.link }}",
+            "Hash": "={{ $('Code in JavaScript3').item.json.hash }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Headline",
+              "displayName": "Headline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sub-Category",
+              "displayName": "Sub-Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Insight",
+              "displayName": "Insight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Facts",
+              "displayName": "Facts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Article URL",
+              "displayName": "Article URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Image Url",
+              "displayName": "Image Url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Hash",
+              "displayName": "Hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3040,
+        448
+      ],
+      "id": "4407f9ed-0215-4258-9118-11b8709438b8",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "R60hLMMECDu4kuGC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "value": "models/imagen-4.0-fast-generate-001",
+          "mode": "list",
+          "cachedResultName": "models/imagen-4.0-fast-generate-001"
+        },
+        "prompt": "=reate a clean, professional news illustration for an article about:{{ $json.new_headline }} . Style: Minimalist, modern editorial, suitable for a business news site.",
+        "options": {
+          "binaryPropertyOutput": "data"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        2592,
+        448
+      ],
+      "id": "58eff5dd-7175-4737-bdd3-a3649d3c0b93",
+      "name": "Generate an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0pgJ6oTnXkBLwilY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Code in JavaScript1').item.json.new_headline }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2816,
+        448
+      ],
+      "id": "bc56d4b5-08b5-4581-9c72-f9fc7dc9aaf8",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YGCgU1l4Zq8zTZNK",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  return {\n    json: {\n      title: item.json.title,\n      link: item.json.link,\n      source: $json.source,\n      published_at:\n        item.json.isoDate ||\n        null\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        448
+      ],
+      "id": "9859163d-63ae-4bd0-853b-ba6ae80c9e3f",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        32,
+        432
+      ],
+      "id": "29f152df-31a0-4143-92b4-0ac05b58c6a3",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "643f111b-5a02-45ce-8596-36dc9e8cedd3",
+              "leftValue": "={{ $json.published_at }}",
+              "rightValue": "={{ $now.minus({ hours: 20 }) }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        288,
+        464
+      ],
+      "id": "4e50c717-6dc8-4ebf-a9e1-3e259a677656",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst hash = crypto\n  .createHash('md5')\n  .update($json.title + $json.link)\n  .digest('hex');\n\nreturn [{ json: { ...$json, hash } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        448
+      ],
+      "id": "c3ffa240-6501-4283-a135-b697d55fb1b6",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1-K9ezGEwxdSzEMsc1FKnQmUsNOm8GXEA0VgAaFvLwkc",
+          "mode": "list",
+          "cachedResultName": "Article",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-K9ezGEwxdSzEMsc1FKnQmUsNOm8GXEA0VgAaFvLwkc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-K9ezGEwxdSzEMsc1FKnQmUsNOm8GXEA0VgAaFvLwkc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Dedup Key": "={{ $('Code in JavaScript3').item.json.hash }}",
+            "published_at": "={{ $('Code in JavaScript3').item.json.published_at }}",
+            "original_url": "={{ $('Code in JavaScript3').item.json.link }}",
+            "Title": "={{ $('Code in JavaScript3').item.json.title }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Dedup Key",
+              "displayName": "Dedup Key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "original_url",
+              "displayName": "original_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "published_at",
+              "displayName": "published_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3264,
+        448
+      ],
+      "id": "bddbde32-8892-44fd-bbf5-977bbe08ffc3",
+      "name": "Append row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "R60hLMMECDu4kuGC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Keep only the first item and drop the rest\nreturn items.length > 0 ? [items[0]] : [];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        1456
+      ],
+      "id": "32d6b2c9-6e83-4578-95f0-da6044e854d0",
+      "name": "Code in JavaScript5",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9774a3ff-feb3-4bfb-ae21-cf6744fbcceb",
+              "leftValue": "={{ $json['Dedup Key'] }}",
+              "rightValue": "={{ $('Code in JavaScript3').item.json.hash }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        1424
+      ],
+      "id": "a0dc0c51-7236-434b-a794-9d9c1f5207ab",
+      "name": "If2",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1-K9ezGEwxdSzEMsc1FKnQmUsNOm8GXEA0VgAaFvLwkc",
+          "mode": "list",
+          "cachedResultName": "Article",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-K9ezGEwxdSzEMsc1FKnQmUsNOm8GXEA0VgAaFvLwkc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-K9ezGEwxdSzEMsc1FKnQmUsNOm8GXEA0VgAaFvLwkc/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        1440
+      ],
+      "id": "c24bb354-7469-4a5f-8d63-49623313fd92",
+      "name": "Get row(s) in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "R60hLMMECDu4kuGC",
+          "name": "Google Sheets account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1BiJ2Pfx6TR6pr4h88kCP1Flk-rMPynf6UVfyNN6bCYY",
+          "mode": "list",
+          "cachedResultName": "Data(RSS)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BiJ2Pfx6TR6pr4h88kCP1Flk-rMPynf6UVfyNN6bCYY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BiJ2Pfx6TR6pr4h88kCP1Flk-rMPynf6UVfyNN6bCYY/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Hash",
+              "lookupValue": "={{ $json.hash }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        704,
+        448
+      ],
+      "id": "13d4b065-4439-4955-8d88-dfd9cdd97168",
+      "name": "Get row(s) in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "R60hLMMECDu4kuGC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Because \"Always output data\" is ON,\n// we will always get exactly ONE item\n\nconst row = items[0].json;\n\n// If the row object has keys, a duplicate exists\nconst isDuplicate = Object.keys(row).length > 0;\n\nreturn [\n  {\n    json: {\n      isDuplicate\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        208
+      ],
+      "id": "8dd28b94-8fba-45c9-9867-3c1e00532d28",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5a450a28-fe21-4a4b-93cc-ff254db3273f",
+              "leftValue": "={{ $json.isDuplicate }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1072,
+        208
+      ],
+      "id": "6ce0067f-c082-46c1-bda9-85b146e6181b",
+      "name": "If1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Generate an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate an image": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "2c5ee331-8855-41fe-add4-e963a48f1e9a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5ba66ef9579f93bca56e178165727fab43813acd58baa0298dae35da6ab5500c"
+  },
+  "id": "Wkg7M9i4LF6eZqpYI-TrH",
+  "tags": []
+}
